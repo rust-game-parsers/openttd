@@ -1,0 +1,22 @@
+[package]
+name = "openttd"
+version = "0.1.0"
+authors = [
+    "Artem Vorotnikov <artem@vorotnikov.me>",
+]
+description = "Models and parsers for OpenTTD network protocol"
+repository = "https://github.com/rust-game-parsers/openttd"
+keywords = [
+    "game",
+    "games",
+    "openttd",
+]
+license = "Apache"
+
+[dependencies]
+byteorder = "*"
+chrono = "*"
+failure = "*"
+failure_derive = "*"
+maplit = "*"
+nom = "4.0.0-beta3"
