@@ -106,17 +106,15 @@ named!(newgrf_entry<&[u8], (u32, [u8; 16])>,
     )
 );
 
-fn parse_v4_data(buf: &[u8]) -> nom::IResult<&[u8], V4Data> {
-    let mut active_newgrf = HashMap::new();
-    let (mut buf, active_newgrf_num) = be_u8(buf)?;
-
-    for _ in 0..active_newgrf_num {
-        let (new_buf, v) = newgrf_entry(buf)?;
-        active_newgrf.insert(v.0, v.1);
-        buf = new_buf;
-    }
-    Ok((buf, V4Data { active_newgrf }))
-}
+named!(parse_v4_data<&[u8], V4Data>,
+    do_parse!(
+        active_newgrf_num: le_u8 >>
+        newgrf_data: count!(newgrf_entry, active_newgrf_num as usize) >>
+        (V4Data {
+            active_newgrf: newgrf_data.into_iter().collect::<HashMap<_, _>>()
+        })
+    )
+);
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ProtocolVer {
