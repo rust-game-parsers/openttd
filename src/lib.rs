@@ -27,6 +27,9 @@ pub use server_register::*;
 mod client_get_list;
 pub use client_get_list::*;
 
+mod master_response_list;
+pub use master_response_list::*;
+
 use byteorder::{LittleEndian, WriteBytesExt};
 use nom::*;
 
@@ -144,6 +147,7 @@ pub enum Packet {
     ServerRegister(ServerRegistrationData),
     MasterAckRegister,
     ClientGetList(ClientGetListData),
+    MasterResponseList(ServerList),
 }
 
 impl Packet {
@@ -157,6 +161,7 @@ impl Packet {
             Packet::ServerRegister(_) => PacketType::ServerRegister,
             Packet::MasterAckRegister => PacketType::MasterAckRegister,
             Packet::ClientGetList(_) => PacketType::ClientGetList,
+            Packet::MasterResponseList(_) => PacketType::MasterResponseList,
         }
     }
 
@@ -173,6 +178,7 @@ impl Packet {
                 PacketType::ServerRegister => map!(parse_server_register, Packet::ServerRegister) |
                 PacketType::MasterAckRegister => value!(Packet::MasterAckRegister) |
                 PacketType::ClientGetList => map!(parse_client_get_list, Packet::ClientGetList) |
+                PacketType::MasterResponseList => map!(parse_master_response, Packet::MasterResponseList) |
                 _ => value!(unimplemented!())
             ) >>
             (packet)
