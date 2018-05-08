@@ -21,8 +21,46 @@ pub use server_response::{ProtocolVer, ServerResponse, V2Data, V3Data, V4Data};
 mod server_detail_info;
 pub use server_detail_info::*;
 
-use nom::*;
+mod server_register;
+pub use server_register::*;
+
+mod client_get_list;
+pub use client_get_list::*;
+
 use byteorder::{LittleEndian, WriteBytesExt};
+use nom::*;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ServerListType {
+    IPv4,
+    IPv6,
+    Autodetect,
+}
+
+impl From<ServerListType> for u8 {
+    fn from(v: ServerListType) -> Self {
+        use ServerListType::*;
+
+        match v {
+            IPv4 => 0,
+            IPv6 => 1,
+            Autodetect => 2,
+        }
+    }
+}
+
+impl ServerListType {
+    pub fn from_num(v: u8) -> Option<Self> {
+        use ServerListType::*;
+
+        match v {
+            0 => Some(IPv4),
+            1 => Some(IPv6),
+            2 => Some(Autodetect),
+            _ => None,
+        }
+    }
+}
 
 /// Enum representing various OpenTTD UDP packet types.
 #[derive(Clone, Copy, Debug)]
@@ -103,6 +141,9 @@ pub enum Packet {
     ServerResponse(ServerResponse),
     ClientDetailInfo,
     ServerDetailInfo(ServerDetailInfo),
+    ServerRegister(ServerRegistrationData),
+    MasterAckRegister,
+    ClientGetList(ClientGetListData),
 }
 
 impl Packet {
@@ -113,9 +154,13 @@ impl Packet {
             Packet::ServerResponse(_) => PacketType::ServerResponse,
             Packet::ClientDetailInfo => PacketType::ClientDetailInfo,
             Packet::ServerDetailInfo(_) => PacketType::ServerDetailInfo,
+            Packet::ServerRegister(_) => PacketType::ServerRegister,
+            Packet::MasterAckRegister => PacketType::MasterAckRegister,
+            Packet::ClientGetList(_) => PacketType::ClientGetList,
         }
     }
 
+    /// Parse a UDP packet
     named!(pub from_incoming_bytes<&[u8], Packet>,
         do_parse!(
             _packet_len: le_u16 >>
@@ -125,6 +170,9 @@ impl Packet {
                 PacketType::ServerResponse => map!(parse_server_response, Packet::ServerResponse) |
                 PacketType::ClientDetailInfo => value!(Packet::ClientDetailInfo) |
                 PacketType::ServerDetailInfo => map!(parse_server_detail_info, Packet::ServerDetailInfo) |
+                PacketType::ServerRegister => map!(parse_server_register, Packet::ServerRegister) |
+                PacketType::MasterAckRegister => value!(Packet::MasterAckRegister) |
+                PacketType::ClientGetList => map!(parse_client_get_list, Packet::ClientGetList) |
                 _ => value!(unimplemented!())
             ) >>
             (packet)
@@ -139,6 +187,7 @@ impl ByteWriter for Packet {
 
         match *self {
             Packet::ServerResponse(ref data) => data.write_pkt(buf)?,
+            Packet::ServerDetailInfo(ref data) => data.write_pkt(buf)?,
             _ => {}
         };
 
@@ -154,8 +203,8 @@ mod tests {
     use super::*;
 
     fn fixtures() -> (Vec<u8>, Packet) {
-        let b = vec![3, 0, 0];
-        let data = Packet::ClientFindServer;
+        let b = vec![3, 0, 2];
+        let data = Packet::ClientDetailInfo;
 
         (b, data)
     }

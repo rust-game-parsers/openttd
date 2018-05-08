@@ -1,6 +1,6 @@
+use chrono::prelude::*;
 use std;
 use std::ffi::CString;
-use chrono::prelude::*;
 
 named!(pub read_string<&[u8], CString>, do_parse!(
     s: map_res!(take_till!(|v| v == 0), |arr| CString::new(arr)) >>
