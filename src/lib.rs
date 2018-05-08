@@ -33,38 +33,6 @@ pub use master_response_list::*;
 use byteorder::{LittleEndian, WriteBytesExt};
 use nom::*;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ServerListType {
-    IPv4,
-    IPv6,
-    Autodetect,
-}
-
-impl From<ServerListType> for u8 {
-    fn from(v: ServerListType) -> Self {
-        use ServerListType::*;
-
-        match v {
-            IPv4 => 0,
-            IPv6 => 1,
-            Autodetect => 2,
-        }
-    }
-}
-
-impl ServerListType {
-    pub fn from_num(v: u8) -> Option<Self> {
-        use ServerListType::*;
-
-        match v {
-            0 => Some(IPv4),
-            1 => Some(IPv6),
-            2 => Some(Autodetect),
-            _ => None,
-        }
-    }
-}
-
 /// Enum representing various OpenTTD UDP packet types.
 #[derive(Clone, Copy, Debug)]
 pub enum PacketType {
