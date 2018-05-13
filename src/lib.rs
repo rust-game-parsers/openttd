@@ -30,6 +30,9 @@ pub use client_get_list::*;
 mod master_response_list;
 pub use master_response_list::*;
 
+mod server_unregister;
+pub use server_unregister::*;
+
 use byteorder::{LittleEndian, WriteBytesExt};
 use nom::*;
 
@@ -116,6 +119,7 @@ pub enum Packet {
     MasterAckRegister,
     ClientGetList(ClientGetListData),
     MasterResponseList(ServerList),
+    ServerUnregister(ServerUnregisterData),
 }
 
 impl Packet {
@@ -130,6 +134,7 @@ impl Packet {
             Packet::MasterAckRegister => PacketType::MasterAckRegister,
             Packet::ClientGetList(_) => PacketType::ClientGetList,
             Packet::MasterResponseList(_) => PacketType::MasterResponseList,
+            Packet::ServerUnregister(_) => PacketType::ServerUnregister,
         }
     }
 
@@ -147,6 +152,7 @@ impl Packet {
                 PacketType::MasterAckRegister => value!(Packet::MasterAckRegister) |
                 PacketType::ClientGetList => map!(parse_client_get_list, Packet::ClientGetList) |
                 PacketType::MasterResponseList => map!(parse_master_response, Packet::MasterResponseList) |
+                PacketType::ServerUnregister => map!(ServerUnregisterData::from_bytes, Packet::ServerUnregister) |
                 _ => value!(unimplemented!())
             ) >>
             (packet)
@@ -165,6 +171,7 @@ impl ByteWriter for Packet {
             Packet::ServerRegister(ref data) => data.write_pkt(buf)?,
             Packet::ClientGetList(ref data) => data.write_pkt(buf)?,
             Packet::MasterResponseList(ref data) => data.write_pkt(buf)?,
+            Packet::ServerUnregister(ref data) => data.write_pkt(buf)?,
             _ => {}
         };
 
