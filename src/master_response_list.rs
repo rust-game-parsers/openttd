@@ -1,6 +1,10 @@
+use util::*;
+
 use nom::*;
 use std::collections::HashSet;
+use std;
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddrV4, SocketAddrV6};
+use byteorder::{LittleEndian, WriteBytesExt};
 
 #[derive(Clone, Copy, Debug, PartialEq, Hash)]
 enum ServerType {
@@ -20,10 +24,51 @@ impl ServerType {
     }
 }
 
+pub type V4Set = HashSet<SocketAddrV4>;
+
+impl ByteWriter for V4Set {
+    fn write_pkt(&self, buf: &mut Vec<u8>) -> std::io::Result<()> {
+        buf.write_u16::<LittleEndian>(self.len() as u16)?;
+        for addr in self.iter() {
+            for octet in addr.ip().octets().into_iter() {
+                buf.write_u8(*octet)?;
+            }
+            buf.write_u16::<LittleEndian>(addr.port())?;
+        }
+
+        Ok(())
+    }
+}
+
+pub type V6Set = HashSet<SocketAddrV6>;
+
+impl ByteWriter for V6Set {
+    fn write_pkt(&self, buf: &mut Vec<u8>) -> std::io::Result<()> {
+        buf.write_u16::<LittleEndian>(self.len() as u16)?;
+        for addr in self.iter() {
+            for segment in addr.ip().segments().into_iter() {
+                buf.write_u16::<LittleEndian>(*segment)?;
+            }
+            buf.write_u16::<LittleEndian>(addr.port())?;
+        }
+
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum ServerList {
-    IPv4(HashSet<SocketAddrV4>),
-    IPv6(HashSet<SocketAddrV6>),
+    IPv4(V4Set),
+    IPv6(V6Set),
+}
+
+impl ByteWriter for ServerList {
+    fn write_pkt(&self, buf: &mut Vec<u8>) -> std::io::Result<()> {
+        match *self {
+            ServerList::IPv4(ref data) => data.write_pkt(buf),
+            ServerList::IPv6(ref data) => data.write_pkt(buf),
+        }
+    }
 }
 
 named!(parse_v4_ip<&[u8], Ipv4Addr>,

@@ -162,6 +162,9 @@ impl ByteWriter for Packet {
         match *self {
             Packet::ServerResponse(ref data) => data.write_pkt(buf)?,
             Packet::ServerDetailInfo(ref data) => data.write_pkt(buf)?,
+            Packet::ServerRegister(ref data) => data.write_pkt(buf)?,
+            Packet::ClientGetList(ref data) => data.write_pkt(buf)?,
+            Packet::MasterResponseList(ref data) => data.write_pkt(buf)?,
             _ => {}
         };
 
