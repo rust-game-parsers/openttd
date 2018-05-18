@@ -225,8 +225,8 @@ impl ByteWriter for ServerResponse {
 named!(pub parse_server_response<&[u8], ServerResponse>,
     do_parse!(
         protocol_ver: protocol_ver >>
-        server_name: read_string >>
-        server_revision: read_string >>
+        server_name: read_cstring >>
+        server_revision: read_cstring >>
 
         server_lang: le_u8 >>
         use_password: map!(le_u8, |v| v > 0) >>
@@ -236,7 +236,7 @@ named!(pub parse_server_response<&[u8], ServerResponse>,
 
         cond!(u8::from(&protocol_ver) < 3, take!(4)) >>
 
-        map_name: read_string >>
+        map_name: read_cstring >>
         map_width: le_u16 >>
         map_height: le_u16 >>
         map_set: le_u8 >>

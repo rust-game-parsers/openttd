@@ -62,7 +62,7 @@ impl CompanyInfo {
 named!(pub parse_company_info<&[u8], CompanyInfo>,
     do_parse!(
         index: le_u8 >>
-        name: read_string >>
+        name: read_cstring >>
         inaugurated_year: le_u32 >>
         company_value: le_u64 >>
         money: le_u64 >>

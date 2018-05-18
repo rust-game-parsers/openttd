@@ -26,7 +26,7 @@ impl ServerRegistrationData {
 
 named!(pub parse_server_register<&[u8], ServerRegistrationData>,
     do_parse!(
-        welcome_message: read_string >>
+        welcome_message: read_cstring >>
         server_version: le_u8 >>
         port: le_u16 >>
         session_key: le_u64 >>

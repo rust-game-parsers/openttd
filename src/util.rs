@@ -2,7 +2,7 @@ use chrono::prelude::*;
 use std;
 use std::ffi::CString;
 
-named!(pub read_string<&[u8], CString>, do_parse!(
+named!(pub read_cstring<&[u8], CString>, do_parse!(
     s: map_res!(take_till!(|v| v == 0), |arr| CString::new(arr)) >>
     take!(1) >>
     (s)
