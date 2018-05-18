@@ -8,9 +8,6 @@ extern crate maplit;
 #[macro_use]
 extern crate nom;
 
-mod errors;
-pub use errors::*;
-
 mod util;
 use util::*;
 
