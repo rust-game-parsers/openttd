@@ -157,8 +157,8 @@ impl Packet {
     );
 }
 
-impl ByteWriter for Packet {
-    fn write_pkt(&self, out: &mut Vec<u8>) -> std::io::Result<()> {
+impl Packet {
+    pub fn to_bytes(&self) -> std::io::Result<Vec<u8>> {
         let buf = &mut vec![];
         buf.push(self.pkt_type().into());
 
@@ -172,10 +172,11 @@ impl ByteWriter for Packet {
             _ => {}
         };
 
+        let mut out = vec![];
         out.write_u16::<LittleEndian>(buf.len() as u16 + 2)?;
         out.append(buf);
 
-        Ok(())
+        Ok(out)
     }
 }
 
@@ -203,8 +204,7 @@ mod tests {
     fn test_write_packet() {
         let (expectation, input) = fixtures();
 
-        let mut result = Vec::new();
-        input.write_pkt(&mut result).unwrap();
+        let result = input.to_bytes().unwrap();
 
         assert_eq!(expectation, result);
     }
