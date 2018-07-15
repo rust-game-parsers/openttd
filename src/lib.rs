@@ -2,8 +2,6 @@ extern crate byteorder;
 extern crate chrono;
 extern crate failure;
 #[macro_use]
-extern crate failure_derive;
-#[macro_use]
 extern crate maplit;
 #[macro_use]
 extern crate nom;

@@ -1,7 +1,7 @@
 use util::*;
 
-use nom::*;
 use byteorder::{LittleEndian, WriteBytesExt};
+use nom::*;
 use std;
 
 #[derive(Clone, Debug, PartialEq)]

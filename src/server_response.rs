@@ -7,6 +7,7 @@ use nom::*;
 use std;
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::CString;
+use std::fmt;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct V2Data {
@@ -62,8 +63,20 @@ named!(parse_v3_data<&[u8], V3Data>,
 );
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct NewGRFHash(pub [u8; 16]);
+
+impl fmt::Display for NewGRFHash {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        for byte in self.0.iter() {
+            write!(fmt, "{:02x}", byte)?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct V4Data {
-    pub active_newgrf: HashMap<u32, [u8; 16]>,
+    pub active_newgrf: HashMap<u32, NewGRFHash>,
 }
 
 impl ByteWriter for V4Data {
@@ -83,22 +96,22 @@ impl ByteWriter for V4Data {
             .into_iter()
         {
             buf.write_u32::<LittleEndian>(id)?;
-            buf.extend_from_slice(&hash);
+            buf.extend_from_slice(&hash.0);
         }
 
         Ok(())
     }
 }
 
-named!(newgrf_md5<&[u8], [u8; 16]>,
+named!(newgrf_md5<&[u8], NewGRFHash>,
     map!(take!(16), |v| {
         let mut out = [0; 16];
         out.copy_from_slice(v);
-        out
+        NewGRFHash(out)
     })
 );
 
-named!(newgrf_entry<&[u8], (u32, [u8; 16])>,
+named!(newgrf_entry<&[u8], (u32, NewGRFHash)>,
     do_parse!(
         id:  le_u32 >>
         md5: newgrf_md5 >>
@@ -288,9 +301,9 @@ mod tests {
                 },
                 V4Data {
                     active_newgrf: hashmap! {
-                        478788 => [0x48, 0xb3, 0xf9, 0xe4, 0xfd, 0x0d, 0xf2, 0xa7, 0x2b, 0x5f, 0x44, 0xd3, 0xc8, 0xa2, 0xf4, 0xa0],
-                        84100941 => [0x2e, 0x96, 0xb9, 0xab, 0x2b, 0xea, 0x68, 0x6b, 0xff, 0x94, 0x96, 0x1a, 0xd4, 0x33, 0xa7, 0x01],
-                        573780530 => [0x31, 0x61, 0x80, 0xda, 0x1b, 0xa6, 0x44, 0x4a, 0x06, 0xcd, 0x17, 0xf8, 0xfa, 0x79, 0xd6, 0x0a],
+                        0x00074e44 => NewGRFHash([0x48, 0xb3, 0xf9, 0xe4, 0xfd, 0x0d, 0xf2, 0xa7, 0x2b, 0x5f, 0x44, 0xd3, 0xc8, 0xa2, 0xf4, 0xa0]),
+                        0x0503474d => NewGRFHash([0x2e, 0x96, 0xb9, 0xab, 0x2b, 0xea, 0x68, 0x6b, 0xff, 0x94, 0x96, 0x1a, 0xd4, 0x33, 0xa7, 0x01]),
+                        0x22333232 => NewGRFHash([0x31, 0x61, 0x80, 0xda, 0x1b, 0xa6, 0x44, 0x4a, 0x06, 0xcd, 0x17, 0xf8, 0xfa, 0x79, 0xd6, 0x0a]),
                     },
                 },
             ),

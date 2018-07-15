@@ -1,10 +1,10 @@
 use util::*;
 
-use nom::*;
-use std::collections::HashSet;
-use std;
-use std::net::{Ipv4Addr, Ipv6Addr, SocketAddrV4, SocketAddrV6};
 use byteorder::{LittleEndian, WriteBytesExt};
+use nom::*;
+use std;
+use std::collections::HashSet;
+use std::net::{Ipv4Addr, Ipv6Addr, SocketAddrV4, SocketAddrV6};
 
 #[derive(Clone, Copy, Debug, PartialEq, Hash)]
 enum ServerType {
