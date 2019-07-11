@@ -12,11 +12,14 @@ keywords = [
     "openttd",
 ]
 license = "Apache"
+edition = "2018"
 
 [dependencies]
 byteorder = "1"
 chrono = "0.4"
 failure = "0.1"
-failure_derive = "0.1"
 maplit = "1"
-nom = "4"
+nom = "5"
+
+[dev-dependencies]
+hex-literal = "*"

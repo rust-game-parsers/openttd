@@ -1,7 +1,7 @@
-use util::*;
+use crate::util::*;
 
 use byteorder::{LittleEndian, WriteBytesExt};
-use nom::*;
+use nom::{self, number::complete::*, *};
 use std;
 use std::collections::HashMap;
 use std::ffi::CString;
@@ -41,17 +41,67 @@ impl CompanyInfo {
         buf.write_u16::<LittleEndian>(self.performance_history)?;
         buf.write_u8(if self.has_password { 1 } else { 0 })?;
 
-        buf.write_u16::<LittleEndian>(*self.num_vehicles.get(&NetworkVehicleType::Train).unwrap_or(&0))?;
-        buf.write_u16::<LittleEndian>(*self.num_vehicles.get(&NetworkVehicleType::Lorry).unwrap_or(&0))?;
-        buf.write_u16::<LittleEndian>(*self.num_vehicles.get(&NetworkVehicleType::Bus).unwrap_or(&0))?;
-        buf.write_u16::<LittleEndian>(*self.num_vehicles.get(&NetworkVehicleType::Plane).unwrap_or(&0))?;
-        buf.write_u16::<LittleEndian>(*self.num_vehicles.get(&NetworkVehicleType::Ship).unwrap_or(&0))?;
+        buf.write_u16::<LittleEndian>(
+            *self
+                .num_vehicles
+                .get(&NetworkVehicleType::Train)
+                .unwrap_or(&0),
+        )?;
+        buf.write_u16::<LittleEndian>(
+            *self
+                .num_vehicles
+                .get(&NetworkVehicleType::Lorry)
+                .unwrap_or(&0),
+        )?;
+        buf.write_u16::<LittleEndian>(
+            *self
+                .num_vehicles
+                .get(&NetworkVehicleType::Bus)
+                .unwrap_or(&0),
+        )?;
+        buf.write_u16::<LittleEndian>(
+            *self
+                .num_vehicles
+                .get(&NetworkVehicleType::Plane)
+                .unwrap_or(&0),
+        )?;
+        buf.write_u16::<LittleEndian>(
+            *self
+                .num_vehicles
+                .get(&NetworkVehicleType::Ship)
+                .unwrap_or(&0),
+        )?;
 
-        buf.write_u16::<LittleEndian>(*self.num_stations.get(&NetworkVehicleType::Train).unwrap_or(&0))?;
-        buf.write_u16::<LittleEndian>(*self.num_stations.get(&NetworkVehicleType::Lorry).unwrap_or(&0))?;
-        buf.write_u16::<LittleEndian>(*self.num_stations.get(&NetworkVehicleType::Bus).unwrap_or(&0))?;
-        buf.write_u16::<LittleEndian>(*self.num_stations.get(&NetworkVehicleType::Plane).unwrap_or(&0))?;
-        buf.write_u16::<LittleEndian>(*self.num_stations.get(&NetworkVehicleType::Ship).unwrap_or(&0))?;
+        buf.write_u16::<LittleEndian>(
+            *self
+                .num_stations
+                .get(&NetworkVehicleType::Train)
+                .unwrap_or(&0),
+        )?;
+        buf.write_u16::<LittleEndian>(
+            *self
+                .num_stations
+                .get(&NetworkVehicleType::Lorry)
+                .unwrap_or(&0),
+        )?;
+        buf.write_u16::<LittleEndian>(
+            *self
+                .num_stations
+                .get(&NetworkVehicleType::Bus)
+                .unwrap_or(&0),
+        )?;
+        buf.write_u16::<LittleEndian>(
+            *self
+                .num_stations
+                .get(&NetworkVehicleType::Plane)
+                .unwrap_or(&0),
+        )?;
+        buf.write_u16::<LittleEndian>(
+            *self
+                .num_stations
+                .get(&NetworkVehicleType::Ship)
+                .unwrap_or(&0),
+        )?;
 
         buf.write_u8(if self.is_ai { 1 } else { 0 })?;
 

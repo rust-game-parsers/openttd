@@ -1,9 +1,8 @@
-use util::*;
+use crate::util::*;
 
 use byteorder::{LittleEndian, WriteBytesExt};
 use chrono::prelude::*;
-use nom;
-use nom::*;
+use nom::{self, number::complete::*, *};
 use std;
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::CString;
@@ -89,7 +88,8 @@ impl ByteWriter for V4Data {
         }
 
         buf.push(self.active_newgrf.len() as u8);
-        for (id, hash) in self.active_newgrf
+        for (id, hash) in self
+            .active_newgrf
             .clone()
             .into_iter()
             .collect::<BTreeMap<_, _>>()
@@ -189,7 +189,7 @@ fn protocol_ver(buf: &[u8]) -> nom::IResult<&[u8], ProtocolVer> {
             let (buf, v2) = parse_v2_data(buf)?;
             Ok((buf, ProtocolVer::V4(v2, v3, v4)))
         }
-        _ => Err(nom::Err::Failure(Context::Code(buf, ErrorKind::Custom(999)))),
+        _ => Err(nom::Err::Failure((buf, nom::error::ErrorKind::OneOf))),
     }
 }
 
@@ -222,7 +222,7 @@ impl ByteWriter for ServerResponse {
         buf.push(self.spectators_on);
 
         if u8::from(&self.protocol_ver) < 3 {
-            buf.append(&mut vec![0, 0, 0, 0]);
+            buf.append(&mut vec![0; 4]);
         }
 
         buf.append(&mut self.map_name.clone().into_bytes_with_nul());
@@ -277,17 +277,22 @@ named!(pub parse_server_response<&[u8], ServerResponse>,
 mod tests {
     use super::*;
 
+    use hex_literal::hex;
+
     pub(crate) fn fixtures() -> (Vec<u8>, ServerResponse) {
-        let b = vec![
-            0x04, 0x03, 0x44, 0x4E, 0x07, 0x00, 0x48, 0xB3, 0xF9, 0xE4, 0xFD, 0x0D, 0xF2, 0xA7, 0x2B, 0x5F, 0x44, 0xD3,
-            0xC8, 0xA2, 0xF4, 0xA0, 0x4D, 0x47, 0x03, 0x05, 0x2E, 0x96, 0xB9, 0xAB, 0x2B, 0xEA, 0x68, 0x6B, 0xFF, 0x94,
-            0x96, 0x1A, 0xD4, 0x33, 0xA7, 0x01, 0x32, 0x32, 0x33, 0x22, 0x31, 0x61, 0x80, 0xDA, 0x1B, 0xA6, 0x44, 0x4A,
-            0x06, 0xCD, 0x17, 0xF8, 0xFA, 0x79, 0xD6, 0x0A, 0x63, 0xEC, 0x0A, 0x00, 0x63, 0xEC, 0x0A, 0x00, 0x0F, 0x00,
-            0x0A, 0x4F, 0x6E, 0x6C, 0x79, 0x46, 0x72, 0x69, 0x65, 0x6E, 0x64, 0x73, 0x20, 0x4F, 0x70, 0x65, 0x6E, 0x54,
-            0x54, 0x44, 0x20, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x20, 0x23, 0x31, 0x00, 0x31, 0x2E, 0x35, 0x2E, 0x33,
-            0x00, 0x16, 0x00, 0x19, 0x00, 0x00, 0x52, 0x61, 0x6E, 0x64, 0x6F, 0x6D, 0x20, 0x4D, 0x61, 0x70, 0x00, 0x00,
-            0x04, 0x00, 0x04, 0x01, 0x01,
-        ];
+        let b = hex!(
+            "
+            0403444E070048B3F9E4FD0DF2A72B5F44D3C8A
+            2F4A04D4703052E96B9AB2BEA686BFF94961AD4
+            33A70132323322316180DA1BA6444A06CD17F8F
+            A79D60A63EC0A0063EC0A000F000A4F6E6C7946
+            7269656E6473204F70656E54544420536572766
+            57220233100312E352E3300160019000052616E
+            646F6D204D617000000400040101
+        "
+        )
+        .to_vec();
+
         let srv = ServerResponse {
             protocol_ver: ProtocolVer::V4(
                 V2Data {
@@ -301,9 +306,9 @@ mod tests {
                 },
                 V4Data {
                     active_newgrf: hashmap! {
-                        0x00074e44 => NewGRFHash([0x48, 0xb3, 0xf9, 0xe4, 0xfd, 0x0d, 0xf2, 0xa7, 0x2b, 0x5f, 0x44, 0xd3, 0xc8, 0xa2, 0xf4, 0xa0]),
-                        0x0503474d => NewGRFHash([0x2e, 0x96, 0xb9, 0xab, 0x2b, 0xea, 0x68, 0x6b, 0xff, 0x94, 0x96, 0x1a, 0xd4, 0x33, 0xa7, 0x01]),
-                        0x22333232 => NewGRFHash([0x31, 0x61, 0x80, 0xda, 0x1b, 0xa6, 0x44, 0x4a, 0x06, 0xcd, 0x17, 0xf8, 0xfa, 0x79, 0xd6, 0x0a]),
+                        0x00074e44 => NewGRFHash(hex!("48b3f9e4fd0df2a72b5f44d3c8a2f4a0")),
+                        0x0503474d => NewGRFHash(hex!("2e96b9ab2bea686bff94961ad433a701")),
+                        0x22333232 => NewGRFHash(hex!("316180da1ba6444a06cd17f8fa79d60a")),
                     },
                 },
             ),

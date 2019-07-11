@@ -1,5 +1,5 @@
 use byteorder::WriteBytesExt;
-use nom::*;
+use nom::{self, number::complete::*, *};
 use std;
 
 #[derive(Clone, Copy, Debug, PartialEq)]

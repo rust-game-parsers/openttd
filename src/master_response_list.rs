@@ -1,7 +1,7 @@
-use util::*;
+use crate::util::*;
 
 use byteorder::{LittleEndian, WriteBytesExt};
-use nom::*;
+use nom::{self, number::complete::*, *};
 use std;
 use std::collections::HashSet;
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddrV4, SocketAddrV6};
@@ -30,7 +30,7 @@ impl ByteWriter for V4Set {
     fn write_pkt(&self, buf: &mut Vec<u8>) -> std::io::Result<()> {
         buf.write_u16::<LittleEndian>(self.len() as u16)?;
         for addr in self.iter() {
-            for octet in addr.ip().octets().into_iter() {
+            for octet in &addr.ip().octets() {
                 buf.write_u8(*octet)?;
             }
             buf.write_u16::<LittleEndian>(addr.port())?;
@@ -46,7 +46,7 @@ impl ByteWriter for V6Set {
     fn write_pkt(&self, buf: &mut Vec<u8>) -> std::io::Result<()> {
         buf.write_u16::<LittleEndian>(self.len() as u16)?;
         for addr in self.iter() {
-            for segment in addr.ip().segments().into_iter() {
+            for segment in &addr.ip().segments() {
                 buf.write_u16::<LittleEndian>(*segment)?;
             }
             buf.write_u16::<LittleEndian>(addr.port())?;
@@ -95,37 +95,39 @@ named!(parse_v6_ip<&[u8], Ipv6Addr>,
     )
 );
 
-named!(parse_master_response_v4<&[u8], HashSet<SocketAddrV4>>,
+named!(parse_master_response_v4_server_entry(&[u8]) -> SocketAddrV4,
+    do_parse!(
+        ip: parse_v4_ip >>
+        port: le_u16 >>
+        (SocketAddrV4::new(ip, port))
+    )
+);
+
+named!(parse_master_response_v4(&[u8]) -> HashSet<SocketAddrV4>,
     do_parse!(
         server_count: le_u16 >>
-        servers: count!(
-            do_parse!(
-                ip: parse_v4_ip >>
-                port: le_u16 >>
-                (SocketAddrV4::new(ip, port))
-            ),
-            server_count as usize
-        ) >>
+        servers: count!(parse_master_response_v4_server_entry, server_count.into()) >>
         (servers.into_iter().collect::<HashSet<_>>())
     )
 );
 
-named!(parse_master_response_v6<&[u8], HashSet<SocketAddrV6>>,
+named!(parse_master_response_v6_server_entry(&[u8]) -> SocketAddrV6,
+    do_parse!(
+        ip: parse_v6_ip >>
+        port: le_u16 >>
+        (SocketAddrV6::new(ip, port, 0, 0))
+    )
+);
+
+named!(parse_master_response_v6(&[u8]) -> HashSet<SocketAddrV6>,
     do_parse!(
         server_count: le_u16 >>
-        servers: count!(
-            do_parse!(
-                ip: parse_v6_ip >>
-                port: le_u16 >>
-                (SocketAddrV6::new(ip, port, 0, 0))
-            ),
-            server_count as usize
-        ) >>
+        servers: count!(parse_master_response_v6_server_entry, server_count.into()) >>
         (servers.into_iter().collect::<HashSet<_>>())
     )
 );
 
-named!(pub parse_master_response<&[u8], ServerList>,
+named!(pub parse_master_response(&[u8]) -> ServerList,
     do_parse!(
         server_type: map_opt!(le_u8, ServerType::from_num) >>
         server_lists: switch!(value!(server_type),
@@ -140,18 +142,25 @@ named!(pub parse_master_response<&[u8], ServerList>,
 mod tests {
     use super::*;
 
+    use hex_literal::hex;
+
     use std::str::FromStr;
 
     fn fixtures() -> (Vec<u8>, ServerList) {
-        let data = vec![
-            0x01, 0x0A, 0x00, 0x4A, 0xD0, 0x4B, 0xB7, 0x8B, 0x0F, 0xAC, 0xF9, 0xB0, 0x91, 0x8B, 0x0F, 0x53, 0xC7, 0x18,
-            0x16, 0x8B, 0x0F, 0x3E, 0x8F, 0x2E, 0x44, 0x8B, 0x0F, 0x79, 0x2A, 0xA0, 0x97, 0x3E, 0x0F, 0x5C, 0xDE, 0x6E,
-            0x7C, 0x8B, 0x0F, 0x6C, 0x34, 0xE4, 0x4C, 0x8B, 0x0F, 0xB2, 0xEB, 0xB2, 0x57, 0x8B, 0x0F, 0x80, 0x48, 0x4A,
-            0x71, 0x8B, 0x0F, 0x40, 0x8A, 0xE7, 0x36, 0x8B, 0x0F, 0x42, 0x00, 0x07, 0x01, 0x01, 0x00, 0x4A, 0xD0, 0x4B,
-            0xB7, 0x8C, 0x0F,
-        ];
+        let data = hex!(
+            "
+            010A004AD04BB78B0FACF9B0918B
+            0F53C718168B0F3E8F2E448B0F79
+            2AA0973E0F5CDE6E7C8B0F6C34E4
+            4C8B0FB2EBB2578B0F80484A718B
+            0F408AE7368B0F4200070101004A
+            D04BB78C0F
+        "
+        )
+        .to_vec();
+
         let srv_list = ServerList::IPv4(
-            vec![
+            [
                 "74.208.75.183:3979",
                 "172.249.176.145:3979",
                 "83.199.24.22:3979",
@@ -162,9 +171,10 @@ mod tests {
                 "178.235.178.87:3979",
                 "128.72.74.113:3979",
                 "64.138.231.54:3979",
-            ].into_iter()
-                .map(|s| SocketAddrV4::from_str(s).unwrap())
-                .collect::<HashSet<SocketAddrV4>>(),
+            ]
+            .iter()
+            .map(|s| SocketAddrV4::from_str(s).unwrap())
+            .collect::<HashSet<SocketAddrV4>>(),
         );
 
         (data, srv_list)

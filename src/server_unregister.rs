@@ -1,7 +1,7 @@
-use util::*;
+use crate::util::*;
 
 use byteorder::{LittleEndian, WriteBytesExt};
-use nom::*;
+use nom::{self, number::complete::*, *};
 use std;
 
 #[derive(Clone, Debug, PartialEq)]

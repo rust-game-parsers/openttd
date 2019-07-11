@@ -1,6 +1,5 @@
-extern crate byteorder;
-extern crate chrono;
-extern crate failure;
+#![allow(unreachable_code)]
+
 #[macro_use]
 extern crate maplit;
 #[macro_use]
@@ -10,26 +9,26 @@ mod util;
 use util::*;
 
 mod server_response;
+pub use crate::server_response::{ProtocolVer, ServerResponse, V2Data, V3Data, V4Data};
 use server_response::*;
-pub use server_response::{ProtocolVer, ServerResponse, V2Data, V3Data, V4Data};
 
 mod server_detail_info;
-pub use server_detail_info::*;
+pub use crate::server_detail_info::*;
 
 mod server_register;
-pub use server_register::*;
+pub use crate::server_register::*;
 
 mod client_get_list;
-pub use client_get_list::*;
+pub use crate::client_get_list::*;
 
 mod master_response_list;
-pub use master_response_list::*;
+pub use crate::master_response_list::*;
 
 mod server_unregister;
-pub use server_unregister::*;
+pub use crate::server_unregister::*;
 
 use byteorder::{LittleEndian, WriteBytesExt};
-use nom::*;
+use nom::{number::complete::*, *};
 
 /// Enum representing various OpenTTD UDP packet types.
 #[derive(Clone, Copy, Debug)]
@@ -134,7 +133,7 @@ impl Packet {
     }
 
     /// Parse a UDP packet
-    named!(pub from_incoming_bytes<&[u8], Packet>,
+    named!(pub from_incoming_bytes(&[u8]) -> Packet,
         do_parse!(
             _packet_len: le_u16 >>
             packet_type: map_opt!(le_u8, PacketType::from_num) >>
